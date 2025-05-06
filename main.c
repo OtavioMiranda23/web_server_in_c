@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <regex.h>
 
 #define PORT 8080
 #define BUFFER_LEN 1024
@@ -39,15 +40,30 @@ int main() {
     bind(server_fd, (struct sockaddr*)&address, sizeof(address));
     listen(server_fd, 3); //Faz uma fila de 3 antes de retornar que esta com a fila cheia
 
-    printf("Web serve listening on port 8080");
+    printf("Web serve listening on port 8080\n");
     while (1) {
         //aceita a conexao e cria um novo socket para conversar com o client
         client_fd = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
         int byteCount = read(client_fd, buffer, sizeof(buffer));
         if (byteCount > 0) {
-            printf("Received message: %s\n", buffer);
+            // printf("Received message:\n %s\n", buffer);
         }
         write(client_fd, html_response, strlen(html_response));
+        regex_t regex;
+        regcomp(&regex, "GET /([^ ]*) HTTP/1", REG_EXTENDED);
+        regmatch_t matches[2];
+        if ((regexec(&regex, buffer, 2, matches, 0)) == 0) {
+            int start = matches[1].rm_so;
+            int end = matches[1].rm_eo;
+            buffer[end] = '\0';
+            const char *url_encoded_file_name = buffer + start;
+            char *file_name = url_decode(url_encoded_file_name);
+            printf("--%s\n", file_name);
+            // printf("%.*s\n", end - start, buffer + start);
+
+
+
+        }
         close(client_fd);
     }
     
