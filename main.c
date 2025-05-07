@@ -7,6 +7,32 @@
 
 #define PORT 8080
 #define BUFFER_LEN 1024
+
+char *url_decode(const char *src) {
+    size_t src_len = strlen(src);
+    char *decoded = malloc(src_len + 1);
+    size_t decoded_len = 0;
+    for (size_t i = 0; i < src_len; i++) {
+        if (src[i] == '%' && i +2  < src_len) {
+            int hex_val;
+            sscanf(src + i + 1, "%2x", &hex_val);
+            decoded[decoded_len++] = hex_val;
+            i +=2;
+        } else {
+            decoded[decoded_len++] = src[i];
+        }
+        decoded[decoded_len] = '\0';
+    }
+    return decoded;    
+}
+
+char *get_file_extension(const char *file_name) {
+    char *dot = strrchr(file_name, '.');
+    if (!dot || dot == file_name) {
+        return "";
+    }
+    return dot+1;
+}
 int main() {
     //sockets, file descriptor
     int server_fd, client_fd;
@@ -58,8 +84,10 @@ int main() {
             buffer[end] = '\0';
             const char *url_encoded_file_name = buffer + start;
             char *file_name = url_decode(url_encoded_file_name);
-            printf("--%s\n", file_name);
-            // printf("%.*s\n", end - start, buffer + start);
+            char file_ext[32];
+            strcpy(file_ext, get_file_extension(file_name));
+            printf("file_ext: %s\n", file_ext);
+
 
 
 
