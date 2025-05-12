@@ -45,7 +45,7 @@ char *url_decode(const char *src) {
 }
 
 void build_http_response(const char *file_name,
-     const char *file_ext,
+     char *file_ext,
      char *response,
      size_t *response_len) {
     //comparar se a extensão é igual a html/htm/txt/jpg/png
@@ -68,31 +68,31 @@ void build_http_response(const char *file_name,
     }
     int file_fd = open(file_name, O_RDONLY);
     if (file_fd == -1) {
-        snprintf(response, BUFFER_LEN,
+        file_fd = open("notfound.html", O_RDONLY);
+        strcpy(file_ext, "html");
+        mime_type = (file_ext);
+        snprintf(header, BUFFER_LEN,
             "HTTP/1.1 404 Not Found\r\n"
-            "Content-type: text/plain\r\n"
-            "\r\n"
-            "404 Not Found\n");
-            // *response_len = strlen(response);
-            return;
-        }
-        //pega o file size para Content-Length
-        struct stat file_stat;
-        fstat(file_fd, &file_stat);
-        off_t file_size = file_stat.st_size;
-
-        //copy header to response buffer
-        *response_len = 0;
-        memcpy(response, header, strlen(header));
-        *response_len += strlen(header);
-        size_t bytes_read;
-        while ((bytes_read = read(file_fd, response + *response_len, BUFFER_LEN - *response_len)) > 0) {
-            *response_len += bytes_read;
-        }
-        free(header);
-        close(file_fd);
-        
+            "Content-type: %s\r\n"
+            "\r\n",
+            mime_type);
     }
+    //pega o file size para Content-Length
+    struct stat file_stat;
+    fstat(file_fd, &file_stat);
+    off_t file_size = file_stat.st_size;
+
+    //copy header to response buffer
+    *response_len = 0;
+    memcpy(response, header, strlen(header));
+    *response_len += strlen(header);
+    size_t bytes_read;
+    while ((bytes_read = read(file_fd, response + *response_len, BUFFER_LEN - *response_len)) > 0) {
+        *response_len += bytes_read;
+    }
+    free(header);
+    close(file_fd); 
+}
 
 char *get_file_extension(const char *file_name) {
     char *dot = strrchr(file_name, '.');
@@ -153,6 +153,9 @@ int main() {
             int end = matches[1].rm_eo;
             buffer[end] = '\0';
             const char *url_encoded_file_name = buffer + start;
+            if (strcmp(url_encoded_file_name, "/") == 0 || strcmp(url_encoded_file_name, "") == 0) {
+                url_encoded_file_name = strdup("index.html");
+            }
             char *file_name = url_decode(url_encoded_file_name);
             char file_ext[32];
             strcpy(file_ext, get_file_extension(file_name));
